@@ -2,5 +2,6 @@ media/
 example/
 elm-stuff/
 .vscode/
+test/
 *html
 *js

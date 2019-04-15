@@ -18,6 +18,7 @@ import Process
 import Random
 import SimpleTimer exposing (SimpleTimer)
 import Task
+import Thumbs
 import Time exposing (Posix)
 
 
@@ -550,13 +551,18 @@ wrapInContainer element =
 viewMain : ProblemState -> Model -> Element Msg
 viewMain problemState model =
     let
-        maybeTimer =
+        background =
             case problemState of
                 Calculating ->
                     el [ centerX, centerY ] (viewTimer model.timer)
 
-                _ ->
-                    el [] none
+                Feedback ->
+                    case model.currentProblem.answer of
+                        Correct _ ->
+                            el [ centerX, centerY ] (viewThumbs True)
+
+                        _ ->
+                            el [ centerX, centerY ] (viewThumbs False)
 
         name =
             case model.name of
@@ -584,7 +590,7 @@ viewMain problemState model =
                 , centerY
 
                 --, explain Debug.todo
-                , behindContent <| maybeTimer
+                , behindContent <| background
                 ]
     in
     case problemState of
@@ -710,6 +716,19 @@ viewTimer : SimpleTimer -> Element msg
 viewTimer timer =
     SimpleTimer.toSvg 400 timer
         |> html
+
+
+viewThumbs : Bool -> Element msg
+viewThumbs isUp =
+    let
+        thumb =
+            if isUp then
+                Thumbs.up 300
+
+            else
+                Thumbs.down 300
+    in
+    html thumb
 
 
 viewProblem : Problem -> Element Msg
