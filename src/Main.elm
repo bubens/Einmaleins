@@ -20,6 +20,7 @@ import SimpleTimer exposing (SimpleTimer)
 import Task
 import Thumbs
 import Time exposing (Posix)
+import Array
 
 
 
@@ -582,6 +583,14 @@ viewMain problemState model =
                     viewClock model.timePassed
                 ]
 
+        footerRow =
+            row
+                [ width fill
+                , Font.size scales.small
+                ]
+                [ el [ alignRight ] <| viewResults model.passedProblems
+                ]
+
         wrapper =
             column
                 [ padding scales.medium
@@ -603,6 +612,7 @@ viewMain problemState model =
                     , height shrink
                     ]
                     [ viewProblem model.currentProblem ]
+                , footerRow
                 ]
 
         Feedback ->
@@ -614,6 +624,7 @@ viewMain problemState model =
                     , height shrink
                     ]
                     [ viewFeedback model ]
+                , footerRow
                 ]
 
 
@@ -729,6 +740,67 @@ viewThumbs isUp =
                 Thumbs.down 300
     in
     html thumb
+
+
+viewResults : List Problem -> Element msg
+viewResults problems =
+    let
+        countResults =
+            \problem acc ->
+                case problem.answer of
+                    Correct _ ->
+                        Array.set
+                            0
+                            (Array.get 0 acc
+                                |> Maybe.withDefault 0
+                                |> (+) 1)
+                            acc
+                    Incorrect _ ->
+                        Array.set
+                            1
+                            (Array.get 1 acc
+                                |> Maybe.withDefault 0
+                                |> (+) 1)
+                            acc
+                    NoAnswer ->
+                        Array.set
+                            2
+                            (Array.get 2 acc
+                                |> Maybe.withDefault 0
+                                |> (+) 1)
+                            acc
+
+        correct =
+            problems
+                |> List.foldr
+                        countResults
+                        (Array.fromList [0,0,0])
+                |> Array.map
+                    (text << String.fromInt)
+                |> Array.toList
+                |> (\list ->
+                    case list of
+                        [ right, wrong, empty] ->
+                            [ 
+                                row
+                                    [] 
+                                    [el [Font.color <| elColors.green ] <| text <| String.fromChar '✓' ++ ": "
+                                    , el [] right]
+                                , row
+                                    []
+                                    [ el [ Font.color <| elColors.red ] <| text <| String.fromChar '✗' ++ ": "
+                                    , el [] wrong]
+                                ,row
+                                    []
+                                    [ el [] <| text <| String.fromChar '∅' ++ ": "
+                                , el [] empty]
+
+                            ]
+                        _ ->
+                            [ text "Fehler"])
+                
+    in
+    row [ spacing scales.tiny ] correct
 
 
 viewProblem : Problem -> Element Msg
