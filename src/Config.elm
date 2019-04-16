@@ -55,7 +55,7 @@ config =
     , height = 500
     , showNegativeFeedback = 1
     , showPositiveFeedback = 3
-    , timerDuration = 1
+    , timerDuration = 5
     , splashPlaceholderText = "Billybob"
     , colors = colors
     }

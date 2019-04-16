@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import Array
 import Browser
 import Browser.Dom as Dom
 import Browser.Events
@@ -20,7 +21,6 @@ import SimpleTimer exposing (SimpleTimer)
 import Task
 import Thumbs
 import Time exposing (Posix)
-import Array
 
 
 
@@ -69,6 +69,7 @@ type ProblemState
 type alias Problem =
     { problem : Maybe ( Int, Int )
     , answer : Answer
+    , id : Int
     }
 
 
@@ -104,6 +105,7 @@ type Msg
     | NewProblemGenerated ( Int, Int )
     | ForceFocus String
     | ShowCorrectSolution
+    | TimerDone Int
 
 
 type alias Scales =
@@ -140,12 +142,13 @@ initProblem : Problem
 initProblem =
     { problem = Nothing
     , answer = NoAnswer
+    , id = 0
     }
 
 
 initTimer : SimpleTimer
 initTimer =
-    SimpleTimer.create (config.timerDuration * 10000)
+    SimpleTimer.create (config.timerDuration * 1000)
         |> SimpleTimer.setColors
             { color = Just <| toCssString config.colors.red
             , stroke = Just <| toCssString config.colors.black
@@ -277,28 +280,16 @@ update msg model =
                 newTimer =
                     SimpleTimer.tick now model.timer
             in
-            if SimpleTimer.isRunning model.timer then
-                { model | timer = newTimer }
-                    |> withCommand Cmd.none
-
-            else
-                let
-                    problem =
-                        model.currentProblem
-
-                    newProblem =
-                        { problem | answer = NoAnswer }
-                in
-                { model
-                    | timer = newTimer
-                    , passedProblems = newProblem :: model.passedProblems
-                    , appState = Main Feedback
-                }
-                    |> withCommand (delay 0 ShowCorrectSolution)
+            { model | timer = newTimer }
+                |> withCommand Cmd.none
 
         NewProblemGenerated factors ->
-            { model | currentProblem = Problem (Just factors) NoAnswer }
-                |> withCommand Cmd.none
+            { model | currentProblem = Problem (Just factors) NoAnswer (model.currentProblem.id + 1) }
+                |> withCommand
+                    (delay
+                        config.timerDuration
+                        (TimerDone (model.currentProblem.id + 1))
+                    )
 
         ShowCorrectSolution ->
             let
@@ -316,6 +307,34 @@ update msg model =
 
         KeyPressed key ->
             updateProblem key model
+
+        TimerDone id ->
+            case model.appState of
+                Main problemState ->
+                    case problemState of
+                        Calculating ->
+                            if model.currentProblem.id == id then
+                                let
+                                    problem =
+                                        model.currentProblem
+
+                                    newProblem =
+                                        { problem | answer = NoAnswer }
+                                in
+                                { model
+                                    | passedProblems = newProblem :: model.passedProblems
+                                    , appState = Main Feedback
+                                }
+                                    |> withCommand (delay config.showNegativeFeedback ShowCorrectSolution)
+
+                            else
+                                ( model, Cmd.none )
+
+                        _ ->
+                            ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
 
         ForceFocus id ->
             ( model, Task.attempt (\_ -> Noop) (Dom.focus id) )
@@ -753,54 +772,61 @@ viewResults problems =
                             0
                             (Array.get 0 acc
                                 |> Maybe.withDefault 0
-                                |> (+) 1)
+                                |> (+) 1
+                            )
                             acc
+
                     Incorrect _ ->
                         Array.set
                             1
                             (Array.get 1 acc
                                 |> Maybe.withDefault 0
-                                |> (+) 1)
+                                |> (+) 1
+                            )
                             acc
+
                     NoAnswer ->
                         Array.set
                             2
                             (Array.get 2 acc
                                 |> Maybe.withDefault 0
-                                |> (+) 1)
+                                |> (+) 1
+                            )
                             acc
 
-        correct =
+        stats =
             problems
                 |> List.foldr
-                        countResults
-                        (Array.fromList [0,0,0])
+                    countResults
+                    (Array.fromList [ 0, 0, 0 ])
                 |> Array.map
                     (text << String.fromInt)
                 |> Array.toList
                 |> (\list ->
-                    case list of
-                        [ right, wrong, empty] ->
-                            [ 
-                                row
-                                    [] 
-                                    [el [Font.color <| elColors.green ] <| text <| String.fromChar '✓' ++ ": "
-                                    , el [] right]
+                        case list of
+                            [ right, wrong, empty ] ->
+                                [ row
+                                    []
+                                    [ el [ Font.color <| elColors.green ] <| text <| String.fromChar '✓' ++ ": "
+                                    , el [] right
+                                    ]
                                 , row
                                     []
                                     [ el [ Font.color <| elColors.red ] <| text <| String.fromChar '✗' ++ ": "
-                                    , el [] wrong]
-                                ,row
+                                    , el [] wrong
+                                    ]
+                                , row
                                     []
                                     [ el [] <| text <| String.fromChar '∅' ++ ": "
-                                , el [] empty]
+                                    , el [] empty
+                                    ]
+                                ]
 
-                            ]
-                        _ ->
-                            [ text "Fehler"])
-                
+                            _ ->
+                                [ text "Fehler" ]
+                   )
     in
-    row [ spacing scales.tiny ] correct
+    row [ spacing scales.tiny ] stats
 
 
 viewProblem : Problem -> Element Msg
@@ -847,7 +873,7 @@ viewProblem problem =
         , centerY
         ]
         [ Input.text
-            [ width <| px 200
+            [ width <| px 180
             , padding 0
             , spacingXY scales.tiny 0
             , Background.color elColors.transparent
