@@ -52,10 +52,10 @@ colors =
 config : Config
 config =
     { width = 750
-    , height = 500
+    , height = 750
     , showNegativeFeedback = 1
     , showPositiveFeedback = 3
-    , timerDuration = 5
+    , timerDuration = 10
     , splashPlaceholderText = "Billybob"
     , colors = colors
     }

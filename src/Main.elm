@@ -114,6 +114,7 @@ type alias Scales =
     , medium : Int
     , large : Int
     , extraLarge : Int
+    , xxLarge : Int
     }
 
 
@@ -487,6 +488,7 @@ scales =
     , medium = round <| scaled 3
     , large = round <| scaled 4
     , extraLarge = round <| scaled 6
+    , xxLarge = round <| scaled 7
     }
 
 
@@ -592,24 +594,6 @@ viewMain problemState model =
                 _ ->
                     "N/A"
 
-        headerRow =
-            row
-                [ width fill
-                , Font.size scales.small
-                ]
-                [ el [ alignLeft ] <| text name
-                , el [ alignRight ] <|
-                    viewClock model.timePassed
-                ]
-
-        footerRow =
-            row
-                [ width fill
-                , Font.size scales.small
-                ]
-                [ el [ alignRight ] <| viewResults model.passedProblems
-                ]
-
         wrapper =
             column
                 [ padding scales.medium
@@ -620,30 +604,76 @@ viewMain problemState model =
                 --, explain Debug.todo
                 , behindContent <| background
                 ]
+
+        header =
+            row
+                [ width fill
+                , Font.size scales.small
+                ]
+                [ el [ alignLeft ] <| text name
+                , el [ alignRight ] <|
+                    viewClock model.timePassed
+                ]
+
+        problem =
+            row
+                [ centerX
+                , height shrink
+                , spacing scales.large
+                ]
+                [ viewProblem model.currentProblem ]
+
+        feedback =
+            row
+                [ centerX
+                , height shrink
+                , spacing scales.large
+                ]
+                [ viewFeedback model ]
+
+        dial clickable =
+            row
+                [ width <| px 300
+                , height <| px 300
+                , centerX
+                ]
+                [ viewDial clickable ]
+
+        footer =
+            row
+                [ width fill
+                , Font.size scales.small
+                , alignBottom
+                ]
+                [ el [ alignRight ] <| viewResults model.passedProblems
+                ]
+
+        deadSpace h =
+            row
+                [ height <| px h
+                , width fill
+                ]
+                [ none ]
     in
     case problemState of
         Calculating ->
             wrapper
-                [ headerRow
-                , row
-                    [ centerX
-                    , centerY
-                    , height shrink
-                    ]
-                    [ viewProblem model.currentProblem ]
-                , footerRow
+                [ header
+                , deadSpace scales.large
+                , problem
+                , deadSpace scales.large
+                , dial True
+                , footer
                 ]
 
         Feedback ->
             wrapper
-                [ headerRow
-                , row
-                    [ centerX
-                    , centerY
-                    , height shrink
-                    ]
-                    [ viewFeedback model ]
-                , footerRow
+                [ header
+                , deadSpace scales.large
+                , feedback
+                , deadSpace scales.large
+                , dial False
+                , footer
                 ]
 
 
@@ -674,13 +704,13 @@ viewFeedback model =
         answer =
             case problem.answer of
                 NoAnswer ->
-                    text ""
+                    ""
 
                 Correct a ->
-                    text <| String.fromInt a
+                    String.fromInt a
 
                 Incorrect a ->
-                    text <| String.fromInt a
+                    String.fromInt a
 
         color =
             if isCorrect then
@@ -689,17 +719,17 @@ viewFeedback model =
             else
                 elColors.red
 
-        answerAttr =
+        strike =
             if not isCorrect then
-                [ width <| px 200, Font.strike ]
+                [ Font.strike ]
 
             else
-                [ width <| px 200 ]
+                []
     in
     row
         [ padding 0
         , spacingXY scales.tiny 0
-        , Font.size scales.extraLarge
+        , Font.size scales.xxLarge
         , Font.color color
         , Font.glow color 5
         ]
@@ -707,39 +737,8 @@ viewFeedback model =
         , el [] middot
         , el [] y
         , el [] (text "=")
-        , el answerAttr answer
+        , el strike (text <| String.padRight 3 ' ' answer)
         ]
-
-
-keyDecoder : Decode.Decoder ( Msg, Bool )
-keyDecoder =
-    Decode.map
-        (\string -> ( KeyPressed (toKey string), True ))
-        (Decode.field "key" Decode.string)
-
-
-toKey : String -> Key
-toKey string =
-    case String.uncons string of
-        Just ( char, "" ) ->
-            if Char.isDigit char then
-                let
-                    x =
-                        String.fromChar char
-                            |> String.toInt
-                            |> Maybe.withDefault 0
-                in
-                Number x
-
-            else
-                Other
-
-        _ ->
-            if string == "Enter" || string == "Backspace" then
-                Control string
-
-            else
-                Other
 
 
 viewTimer : SimpleTimer -> Element msg
@@ -829,6 +828,102 @@ viewResults problems =
     row [ spacing scales.tiny ] stats
 
 
+viewDial : Bool -> Element Msg
+viewDial pressable =
+    let
+        event key =
+            if pressable then
+                Just <| KeyPressed <| key
+
+            else
+                Nothing
+
+        alphaValue =
+            if pressable then
+                1
+
+            else
+                0.5
+
+        viewButton key =
+            let
+                labelStr =
+                    case key of
+                        Number x ->
+                            String.fromInt x
+
+                        Control str ->
+                            if str == "Backspace" then
+                                String.fromChar '↤'
+
+                            else if str == "Enter" then
+                                "="
+
+                            else
+                                "Err"
+
+                        _ ->
+                            "Err"
+            in
+            Input.button
+                [ width <| fillPortion 1
+                , height fill
+                , Background.color elColors.darkerBackground
+                , Border.color elColors.darkerText
+                , Border.width 1
+                , alpha alphaValue
+                ]
+                { onPress = event key
+                , label =
+                    el
+                        [ width shrink
+                        , height shrink
+                        , centerX
+                        , centerY
+                        ]
+                        (text labelStr)
+                }
+    in
+    column
+        [ width fill
+        , height fill
+        , Font.size scales.large
+        ]
+        [ row
+            [ width fill
+            , height <| fillPortion 1
+            ]
+            [ viewButton <| Number 1
+            , viewButton <| Number 2
+            , viewButton <| Number 3
+            ]
+        , row
+            [ width fill
+            , height <| fillPortion 1
+            ]
+            [ viewButton <| Number 4
+            , viewButton <| Number 5
+            , viewButton <| Number 6
+            ]
+        , row
+            [ width fill
+            , height <| fillPortion 1
+            ]
+            [ viewButton <| Number 7
+            , viewButton <| Number 8
+            , viewButton <| Number 9
+            ]
+        , row
+            [ width fill
+            , height <| fillPortion 1
+            ]
+            [ viewButton <| Control "Backspace"
+            , viewButton <| Number 0
+            , viewButton <| Control "Enter"
+            ]
+        ]
+
+
 viewProblem : Problem -> Element Msg
 viewProblem problem =
     let
@@ -852,47 +947,17 @@ viewProblem problem =
 
                 Incorrect a ->
                     String.fromInt a
-
-        label =
-            row
-                [ padding 0
-                , spacingXY scales.tiny 0
-                , Font.size scales.extraLarge
-                ]
-                [ el [] x
-                , el [] middot
-                , el [] y
-                , el [] (text "=")
-                ]
-
-        id =
-            "einmaleins_input_answer"
     in
     row
-        [ centerX
-        , centerY
+        [ padding 0
+        , spacingXY scales.tiny 0
+        , Font.size scales.xxLarge
         ]
-        [ Input.text
-            [ width <| px 180
-            , padding 0
-            , spacingXY scales.tiny 0
-            , Background.color elColors.transparent
-            , Border.color elColors.transparent
-            , Font.color elColors.darkerText
-            , Font.size scales.extraLarge
-            , htmlAttribute (Html.Events.preventDefaultOn "keyup" keyDecoder)
-            , htmlAttribute <| Html.id id
-            , htmlAttribute <| Html.autofocus True
-            , Events.onLoseFocus <| ForceFocus id
-            ]
-            { onChange = always Noop
-            , text = answer
-            , placeholder = Nothing
-            , label =
-                Input.labelLeft
-                    []
-                    label
-            }
+        [ el [] x
+        , el [] middot
+        , el [] y
+        , el [] (text "=")
+        , el [] (text <| String.padRight 3 ' ' answer)
         ]
 
 
