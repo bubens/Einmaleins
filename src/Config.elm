@@ -51,8 +51,8 @@ colors =
 
 config : Config
 config =
-    { width = 750
-    , height = 750
+    { width = 800
+    , height = 800
     , showNegativeFeedback = 1
     , showPositiveFeedback = 3
     , timerDuration = 10

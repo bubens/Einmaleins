@@ -11,6 +11,7 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
+import Element.Lazy exposing (..)
 import Html exposing (Html)
 import Html.Attributes as Html
 import Html.Events
@@ -610,9 +611,9 @@ viewMain problemState model =
                 [ width fill
                 , Font.size scales.small
                 ]
-                [ el [ alignLeft ] <| text name
+                [ el [ alignLeft ] <| text ("Spieler: " ++ name)
                 , el [ alignRight ] <|
-                    viewClock model.timePassed
+                    lazy viewClock model.timePassed
                 ]
 
         problem =
@@ -621,7 +622,7 @@ viewMain problemState model =
                 , height shrink
                 , spacing scales.large
                 ]
-                [ viewProblem model.currentProblem ]
+                [ lazy viewProblem model.currentProblem ]
 
         feedback =
             row
@@ -629,11 +630,11 @@ viewMain problemState model =
                 , height shrink
                 , spacing scales.large
                 ]
-                [ viewFeedback model ]
+                [ lazy viewFeedback model.currentProblem ]
 
         dial clickable =
             row
-                [ width <| px 300
+                [ width <| px 400
                 , height <| px 300
                 , centerX
                 ]
@@ -645,7 +646,8 @@ viewMain problemState model =
                 , Font.size scales.small
                 , alignBottom
                 ]
-                [ el [ alignRight ] <| viewResults model.passedProblems
+                [ el [ alignRight ] <|
+                    lazy viewResults model.passedProblems
                 ]
 
         deadSpace h =
@@ -657,7 +659,7 @@ viewMain problemState model =
     in
     case problemState of
         Calculating ->
-            wrapper
+            lazy wrapper
                 [ header
                 , deadSpace scales.large
                 , problem
@@ -667,7 +669,7 @@ viewMain problemState model =
                 ]
 
         Feedback ->
-            wrapper
+            lazy wrapper
                 [ header
                 , deadSpace scales.large
                 , feedback
@@ -677,12 +679,9 @@ viewMain problemState model =
                 ]
 
 
-viewFeedback : Model -> Element Msg
-viewFeedback model =
+viewFeedback : Problem -> Element Msg
+viewFeedback problem =
     let
-        problem =
-            model.currentProblem
-
         ( x, y ) =
             Maybe.withDefault ( 1, 1 ) problem.problem
                 |> Tuple.mapBoth
