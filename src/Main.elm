@@ -22,6 +22,7 @@ import SimpleTimer exposing (SimpleTimer)
 import Task
 import Thumbs
 import Time exposing (Posix)
+import Wiggle
 
 
 
@@ -718,12 +719,21 @@ viewFeedback problem =
             else
                 elColors.red
 
-        strike =
+        setUpWiggle =
             if not isCorrect then
-                [ Font.strike ]
+                Wiggle.setUp "wrong" [ -5, 8, -10, 13, -17, 8, -11, 8, -3 ]
+                    |> html
 
             else
-                []
+                none
+
+        applyWiggle =
+            if not isCorrect then
+                Wiggle.apply "wrong" 500
+                    |> htmlAttribute
+
+            else
+                Font.unitalicized
     in
     row
         [ padding 0
@@ -732,11 +742,12 @@ viewFeedback problem =
         , Font.color color
         , Font.glow color 5
         ]
-        [ el [] x
-        , el [] middot
-        , el [] y
-        , el [] (text "=")
-        , el strike (text <| String.padRight 3 ' ' answer)
+        [ setUpWiggle
+        , el [ applyWiggle ] x
+        , el [ applyWiggle ] middot
+        , el [ applyWiggle ] y
+        , el [ applyWiggle ] (text "=")
+        , el [ applyWiggle ] (text <| String.padRight 3 ' ' answer)
         ]
 
 
