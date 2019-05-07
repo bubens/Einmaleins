@@ -54,6 +54,24 @@ type alias Model =
     }
 
 
+type Msg
+    = Noop
+    | NameEntered String
+    | NameSubmitted
+    | StartTimeKeeping Posix
+    | StartNewProblem
+    | StartTimer Posix
+    | SimpleTimerTick Posix
+    | TimeKeepingTick Posix
+    | KeyPressed Key
+    | CheckResult
+    | NewProblemGenerated ( Int, Int )
+    | ForceFocus String
+    | ShowCorrectSolution
+    | TimerDone Int
+    | SwitchStateTo AppState
+
+
 
 -- TYPES
 
@@ -61,6 +79,8 @@ type alias Model =
 type AppState
     = Splash
     | Main ProblemState
+    | About
+    | Settings
 
 
 type ProblemState
@@ -91,23 +111,6 @@ type Key
     = Number Int
     | Control String
     | Other
-
-
-type Msg
-    = Noop
-    | NameEntered String
-    | NameSubmitted
-    | StartTimeKeeping Posix
-    | StartNewProblem
-    | StartTimer Posix
-    | SimpleTimerTick Posix
-    | TimeKeepingTick Posix
-    | KeyPressed Key
-    | CheckResult
-    | NewProblemGenerated ( Int, Int )
-    | ForceFocus String
-    | ShowCorrectSolution
-    | TimerDone Int
 
 
 type alias Scales =
@@ -226,7 +229,8 @@ update msg model =
                     ( model
                     , Cmd.batch
                         [ Task.perform StartTimeKeeping Time.now
-                        , delay 0 StartNewProblem
+                        , delay 0 <| SwitchStateTo (Main Calculating)
+                        , delay 0 <| StartNewProblem
                         ]
                     )
 
@@ -236,6 +240,10 @@ update msg model =
 
                 _ ->
                     ( model, Cmd.none )
+
+        SwitchStateTo state ->
+            route state model
+                |> withCommand Cmd.none
 
         StartNewProblem ->
             { model | appState = Main Calculating }
@@ -447,6 +455,47 @@ updateProblem key model =
             ( model, Cmd.none )
 
 
+route : AppState -> Model -> Model
+route target model =
+    let
+        source =
+            model.appState
+    in
+    case source of
+        Splash ->
+            case target of
+                Main _ ->
+                    { model | appState = Main Calculating }
+
+                About ->
+                    { model | appState = About }
+
+                Settings ->
+                    { model | appState = Settings }
+
+                _ ->
+                    model
+
+        About ->
+            case target of
+                Splash ->
+                    { model | appState = Splash }
+
+                _ ->
+                    model
+
+        Settings ->
+            case target of
+                Splash ->
+                    { model | appState = Splash }
+
+                _ ->
+                    model
+
+        _ ->
+            model
+
+
 toAnswer : ( Int, Int ) -> Int -> Answer
 toAnswer ( x, y ) a =
     if (x * y) == a then
@@ -522,6 +571,14 @@ view model =
             viewMain problemState model
                 |> wrapInContainer
 
+        About ->
+            viewAbout model
+                |> wrapInContainer
+
+        Settings ->
+            viewSettings model
+                |> wrapInContainer
+
 
 wrapInContainer : Element Msg -> Html Msg
 wrapInContainer element =
@@ -570,6 +627,40 @@ wrapInContainer element =
             [ Html.id "einmaleins_container"
             , Html.attribute "style" containerStyle
             ]
+
+
+viewAbout : Model -> Element Msg
+viewAbout model =
+    column
+        []
+        [ el
+            [ width shrink
+            , height shrink
+            , Font.size scales.medium
+            , alignLeft
+            , pointer
+            , Events.onClick <| SwitchStateTo Splash
+            ]
+            (text "< Zurück")
+        , el [] (text "Here be About")
+        ]
+
+
+viewSettings : Model -> Element Msg
+viewSettings model =
+    column
+        []
+        [ el
+            [ width shrink
+            , height shrink
+            , Font.size scales.medium
+            , alignLeft
+            , pointer
+            , Events.onClick <| SwitchStateTo Splash
+            ]
+            (text "< Zurück")
+        , el [] (text "Here be Settings")
+        ]
 
 
 viewMain : ProblemState -> Model -> Element Msg
@@ -1067,8 +1158,7 @@ viewSplash username =
         , width fill
         , height fill
         , centerY
-
-        --, explain Debug.todo
+        , explain Debug.todo
         ]
     <|
         [ row
@@ -1129,7 +1219,7 @@ viewSplash username =
             [ none ]
         , row
             [ width fill
-            , height <| px scales.medium
+            , height shrink
             ]
             [ Input.button
                 [ width shrink
@@ -1145,6 +1235,34 @@ viewSplash username =
                 , label = text "Los geht's"
                 }
             ]
+        , row
+            [ width fill
+            , height <| px scales.small
+            ]
+            [ none ]
+        , row
+            [ width fill
+            , height shrink
+            , spacing scales.small
+            , Font.size <| scales.small
+            ]
+            [ el
+                [ centerX
+                , height fill
+                , width shrink
+                , Events.onClick <| SwitchStateTo About
+                , pointer
+                ]
+                (text "[Informationen]")
+            , el
+                [ centerX
+                , height fill
+                , width shrink
+                , Events.onClick <| SwitchStateTo Settings
+                , pointer
+                ]
+                (text "[Einstellungen]")
+            ]
         ]
 
 
@@ -1155,9 +1273,6 @@ viewSplash username =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model.appState of
-        Splash ->
-            Sub.none
-
         Main _ ->
             if SimpleTimer.isRunning model.timer then
                 Sub.batch
@@ -1167,3 +1282,6 @@ subscriptions model =
 
             else
                 Time.every 1000 (\now -> TimeKeepingTick now)
+
+        _ ->
+            Sub.none
