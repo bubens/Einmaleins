@@ -631,35 +631,125 @@ wrapInContainer element =
 
 viewAbout : Model -> Element Msg
 viewAbout model =
-    column
-        []
-        [ el
-            [ width shrink
-            , height shrink
-            , Font.size scales.medium
-            , alignLeft
-            , pointer
-            , Events.onClick <| SwitchStateTo Splash
-            ]
-            (text "< Zurück")
-        , el [] (text "Here be About")
+    let
+        wrapper =
+            column
+                [ padding scales.medium
+                , width fill
+                , height fill
+
+                --, explain Debug.todo
+                ]
+
+        header =
+            row
+                [ width fill
+                , height shrink
+                , Font.size scales.small
+                ]
+                [ el
+                    [ alignLeft
+                    , Events.onClick <| SwitchStateTo Splash
+                    , pointer
+                    ]
+                    (text "< Zurück")
+                , el
+                    [ alignRight
+                    ]
+                    (text "Informationen")
+                ]
+
+        deadSpace h =
+            row
+                [ height <| px h
+                , width fill
+                ]
+                [ none ]
+
+        heading =
+            row
+                [ width fill
+                , height shrink
+                , Font.size scales.large
+                ]
+                [ text "Über Einmaleins" ]
+
+        info =
+            column
+                [ Font.size scales.small
+                , Font.justify
+                ]
+                [ paragraph [] <| [ text "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce dictum, diam tempus viverra porta, purus augue imperdiet sapien, sit amet tristique tellus magna consectetur elit. Morbi non tempus ante. Etiam nibh purus, pellentesque sed rhoncus non, varius at elit. Donec ultricies condimentum lectus, sed placerat arcu tincidunt sed. Cras fringilla odio id odio tristique pharetra. Duis at pharetra magna. Aenean urna nisl, aliquet ut risus a, bibendum pharetra libero. Curabitur vitae eros neque. Cras vitae ipsum sapien. Nam ut erat mattis, vehicula libero et, rhoncus nisi." ]
+                , paragraph [] <| [ text "Aliquam ultrices facilisis felis commodo feugiat. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nullam a sagittis nisl. Etiam quis est tellus. Pellentesque lacinia nunc tellus, ut malesuada nibh pulvinar a. Suspendisse semper metus nec felis mollis, id ultricies lorem fermentum. Nulla ullamcorper pharetra nisl ac blandit. Nam blandit erat quis leo tincidunt, gravida luctus neque lobortis." ]
+                ]
+    in
+    lazy wrapper
+        [ header
+        , deadSpace scales.medium
+        , heading
+        , info
         ]
 
 
 viewSettings : Model -> Element Msg
 viewSettings model =
-    column
-        []
-        [ el
-            [ width shrink
-            , height shrink
-            , Font.size scales.medium
-            , alignLeft
-            , pointer
-            , Events.onClick <| SwitchStateTo Splash
-            ]
-            (text "< Zurück")
-        , el [] (text "Here be Settings")
+    let
+        wrapper =
+            column
+                [ padding scales.medium
+                , width fill
+                , height fill
+
+                --, explain Debug.todo
+                ]
+
+        header =
+            row
+                [ width fill
+                , height shrink
+                , Font.size scales.small
+                ]
+                [ el
+                    [ alignLeft
+                    , Events.onClick <| SwitchStateTo Splash
+                    , pointer
+                    ]
+                    (text "< Zurück")
+                , el
+                    [ alignRight
+                    ]
+                    (text "Einstellungen")
+                ]
+
+        deadSpace h =
+            row
+                [ height <| px h
+                , width fill
+                ]
+                [ none ]
+
+        heading =
+            row
+                [ width fill
+                , height shrink
+                , Font.size scales.large
+                ]
+                [ text "Übung einstellen" ]
+
+        info =
+            column
+                [ Font.size scales.small
+                , Font.justify
+                ]
+                [ paragraph [] <| [ text "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce dictum, diam tempus viverra porta, purus augue imperdiet sapien, sit amet tristique tellus magna consectetur elit. Morbi non tempus ante. Etiam nibh purus, pellentesque sed rhoncus non, varius at elit. Donec ultricies condimentum lectus, sed placerat arcu tincidunt sed. Cras fringilla odio id odio tristique pharetra. Duis at pharetra magna. Aenean urna nisl, aliquet ut risus a, bibendum pharetra libero. Curabitur vitae eros neque. Cras vitae ipsum sapien. Nam ut erat mattis, vehicula libero et, rhoncus nisi." ]
+                , paragraph [] <| [ text "Aliquam ultrices facilisis felis commodo feugiat. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nullam a sagittis nisl. Etiam quis est tellus. Pellentesque lacinia nunc tellus, ut malesuada nibh pulvinar a. Suspendisse semper metus nec felis mollis, id ultricies lorem fermentum. Nulla ullamcorper pharetra nisl ac blandit. Nam blandit erat quis leo tincidunt, gravida luctus neque lobortis." ]
+                ]
+    in
+    lazy wrapper
+        [ header
+        , deadSpace scales.medium
+        , heading
+        , info
         ]
 
 
@@ -1158,7 +1248,8 @@ viewSplash username =
         , width fill
         , height fill
         , centerY
-        , explain Debug.todo
+
+        -- , explain Debug.todo
         ]
     <|
         [ row
